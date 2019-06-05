@@ -12,20 +12,19 @@ var Remarkable = require("remarkable");
 hljs.initHighlightingOnLoad();
 
 const inputStyle = {
-  width: "50rem"
 };
 
 var md = new Remarkable({
-  highlight: function(str, lang) {
+  highlight: function (str, lang) {
     if ((lang && hljs.getLanguage(lang)) || true) {
       try {
         return hljs.highlight(lang, str).value;
-      } catch (err) {}
+      } catch (err) { }
     }
 
     try {
       return hljs.highlightAuto(str).value;
-    } catch (err) {}
+    } catch (err) { }
     return ""; // use external default escaping
   }
 });
@@ -73,7 +72,7 @@ export const TextField = ({ field, form: { touched, errors }, ...props }) => {
   }
   return (
     <div>
-      <label>
+      <label style={{ width: "100%" }}>
         <b>{props.label}:</b>
         {element}
       </label>
@@ -102,7 +101,7 @@ export const TextAreaField = ({
   }
   return (
     <div>
-      <label>
+      <label style={{ width: "100%" }}>
         <b>{props.label}:</b>
         {element}
       </label>

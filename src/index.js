@@ -82,7 +82,7 @@ class PublishForm extends React.Component {
       return <p> loading.... </p>;
     }
     return (
-      <div>
+      <div >
         <Formik
           initialValues={this.state.initialValues}
           onSubmit={(values, actions) => {
@@ -126,7 +126,7 @@ class PublishForm extends React.Component {
               ) : (
                   <div />
                 )}
-              <div class="mt-5">
+              <div class="mt-2">
                 <h3>About</h3>
                 <hr className="my-3" />
                 <div class="mt-1 mb-1">
@@ -180,7 +180,7 @@ class PublishForm extends React.Component {
                   </label>
                   <p class="mt-1 mb-1">
                     <Field
-                      className="form-control w-50rem"
+                      className="form-control"
                       type="url"
                       name="repo_url"
                       placeholder="Link to the model's code repository"
@@ -202,7 +202,7 @@ class PublishForm extends React.Component {
                   </label>
                   <p class="mt-1 mb-1">
                     <Field
-                      className="form-control w-50rem"
+                      className="form-control"
                       type="number"
                       name="exp_task_time"
                     />
@@ -312,8 +312,8 @@ class AppDetail extends React.Component {
     const app_name = this.props.match.params.app_name;
     const id = `${username}/${app_name}`;
     return (
-      <div>
-        <h2 style={{ marginBottom: "2rem" }}>
+      <div class="card card-inner">
+        <h2 className="card-title" style={{ marginBottom: "2rem" }}>
           <a className="primary-text" href={`/${id}/`}>
             {id}
           </a>
@@ -343,7 +343,7 @@ class CollabForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      initialValues: this.props.initialValues
+      initialValues: this.props.initialValues,
     };
   }
 
@@ -427,7 +427,12 @@ class CollabForm extends React.Component {
                     <div class="card-header">Collaborators</div>
                     {values.collaborators.map((collab, index) => (
                       <div key={index} class="row justify-content-between mb-1 ml-1 card-body">
-                        <Field name={`collaborators[${index}].username`} className="col-3 form-control" />
+                        <Field name={`collaborators[${index}].username`} className="col-3 form-control" component="select">
+                          <option value="">select a user</option>
+                          {this.props.users.map((user, index) => (
+                            <option value={user}>{user}</option>
+                          ))}
+                        </Field>
                         <Field name={`collaborators[${index}].access`} className="col-2 form-control" component="select">
                           <option value="read">read</option>
                           <option value="write">write</option>
@@ -462,15 +467,15 @@ class CollabApp extends React.Component {
   }
   render() {
     return (
+
       <CollabForm
         initialValues={{
           collaborators: [
             { "username": "hdoupe", "access": "read" },
             { "username": "PSLmodels", "access": "write" }
           ],
-          users: ["hdoupe", "PSLmodels", "me", "you"]
         }}
-
+        users={["hdoupe", "PSLmodels", "me", "you"]}
       />
     );
   }
