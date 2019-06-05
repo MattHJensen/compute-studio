@@ -37,6 +37,11 @@ urlpatterns = [
         publishviews.ProjectDetailView.as_view(),
         name="project_detail",
     ),
+    path(
+        "<str:username>/<str:title>/collaboration/",
+        publishviews.ProjectDetailView.as_view(),
+        name="project_collab",
+    ),
     # add project URL's here
     path("<str:username>/<str:title>/", include("webapp.apps.comp.urls")),
     # user/billing apps

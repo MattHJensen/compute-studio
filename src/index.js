@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import React from "react";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import axios from "axios";
-import { Formik, Field, Form, ErrorMessage } from "formik";
+import { Formik, Field, FieldArray, Form, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import {
   TextField,
@@ -330,11 +330,159 @@ class AppDetail extends React.Component {
   }
 }
 
+const selectwidget = (collaborator) => {
+  return (
+    <select id={`${collaborator}-access`}>
+      <option value="read">read</option>
+      <option value="write">write</option>
+    </select>
+  )
+}
+
+class CollabForm extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      initialValues: this.props.initialValues
+    };
+  }
+
+  // table(collaborators) {
+  //   var collabrows = [];
+  //   for (var i = 0; i < collaborators.length; i++) {
+  //     collabrows.push(
+  //       <tr>
+  //         <td>{collaborators[i]}</td>
+  //         <td>{selectwidget(collaborators[i])}</td>
+  //       </tr>
+  //     );
+  //   }
+  //   return (
+  //     <div>
+  //       <p> hello world </p>
+  //       <table class="table table-striped">
+  //         <tr>
+  //           <th>username</th>
+  //           <th>access</th>
+  //         </tr>
+  //         {collaborators.map((c) => (
+  //           <tr>
+  //             <td>{c[username]}</td>
+  //             <td>{
+  //               <Field component="select" name={`$c["username"]-access`}
+  //               c[access]
+  //               /></td>
+  //           </tr>
+  //         ))}
+  //       </table>
+  //     </div>
+  //   );
+  // }
+
+  render() {
+    if (!this.state.initialValues) {
+      return <p> loading.... </p>;
+    }
+    return (
+      <div>
+        <Formik
+          initialValues={this.state.initialValues}
+          // onSubmit={(values, actions) => {
+          //   // TODO: refactor out to own func
+          //   console.log(values, actions);
+          //   var formdata = new FormData();
+          //   for (var field in values) {
+          //     formdata.append([field], values[field]);
+          //   }
+          //   this.props
+          //     .doSubmit(formdata)
+          //     .then(response => {
+          //       actions.setSubmitting(false);
+          //     })
+          //     .catch(error => {
+          //       console.log("error", error);
+          //       console.log(error.response.data);
+          //       actions.setSubmitting(false);
+          //       if (error.response.status == 400) {
+          //         actions.setStatus(error.response.data);
+          //       } else if (error.response.status == 401) {
+          //         actions.setStatus({
+          //           auth: "You must be logged in to publish a model."
+          //         });
+          //       }
+          //     });
+          // }}
+          onSubmit={values =>
+            setTimeout(() => {
+              alert(JSON.stringify(values, null, 2));
+            }, 500)
+          }
+          validationSchema={null}
+          render={({ onChange, status, errors, values, arrayHelpers }) => (
+            <Form>
+              <FieldArray
+                name="collaborators"
+                render={arrayHelpers => (
+                  <div class="card">
+                    <div class="card-header">Collaborators</div>
+                    {values.collaborators.map((collab, index) => (
+                      <div key={index} class="row justify-content-between mb-1 ml-1 card-body">
+                        <Field name={`collaborators[${index}].username`} className="col-3 form-control" />
+                        <Field name={`collaborators[${index}].access`} className="col-2 form-control" component="select">
+                          <option value="read">read</option>
+                          <option value="write">write</option>
+                        </Field>
+                        <button type="button" class="btn btn-link btn-sm col-1 color-inherit hover-red" onClick={() => arrayHelpers.remove(index)}> <i class="fas fa-minus-circle"></i> </button>
+                      </div>
+                    ))}
+                    <div class="card-body">
+                      <button
+                        type="button"
+                        class="btn btn-success"
+                        onClick={() => arrayHelpers.push({ username: '', access: 'read' })}
+                      >
+                        <i class="fas fa-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              />
+
+            </Form>
+          )}
+        />
+      </div>
+    );
+  }
+}
+
+class CollabApp extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+  render() {
+    return (
+      <CollabForm
+        initialValues={{
+          collaborators: [
+            { "username": "hdoupe", "access": "read" },
+            { "username": "PSLmodels", "access": "write" }
+          ],
+          users: ["hdoupe", "PSLmodels", "me", "you"]
+        }}
+
+      />
+    );
+  }
+}
+
+
 ReactDOM.render(
   <BrowserRouter>
     <Switch>
       <Route exact path="/publish/" component={CreateApp} />
       <Route path="/:username/:app_name/detail/" component={AppDetail} />
+      <Route path="/:username/:app_name/collaboration/" component={CollabApp} />
     </Switch>
   </BrowserRouter>,
   domContainer
