@@ -59,6 +59,9 @@ class Cluster:
         with open(config, "r") as f:
             self.config = yaml.safe_load(f.read())
 
+        self.read_templates()
+
+    def read_templates(self):
         with open("templates/flask-deployment.template.yaml", "r") as f:
             self.flask_template = yaml.safe_load(f.read())
 
@@ -73,6 +76,12 @@ class Cluster:
 
         with open("templates/dask/worker-deployment.template.yaml", "r") as f:
             self.dask_worker_template = yaml.safe_load(f.read())
+
+        with open("templates/dask/submitter-deployment.template.yaml", "r") as f:
+            self.dask_submitter_template = yaml.safe_load(f.read())
+
+        with open("templates/dask/submitter-service.template.yaml", "r") as f:
+            self.dask_submitter_service_template = yaml.safe_load(f.read())
 
     def build(self):
         """
@@ -215,6 +224,8 @@ class Cluster:
 
     def write_dask_app(self, app, action):
         self._write_dask_worker_app(app)
+        self._write_dask_submitter_app(app)
+        self._write_dask_submitter_service(app)
         self._write_dask_scheduler_app(app)
         self._write_dask_scheduler_service(app)
 
@@ -225,44 +236,53 @@ class Cluster:
         name = f"{safeowner}-{safetitle}-dask-worker"
         image = f"{self.cr}/{self.project}/{safeowner}_{safetitle}_tasks:{self.tag}"
 
-        app_deployment["metadata"]["name"] = name
-        app_deployment["metadata"]["labels"]["app"] = name
-        app_deployment["spec"]["replicas"] = app.get("replicas", 1)
-        app_deployment["spec"]["selector"]["matchLabels"]["app"] = name
-        app_deployment["spec"]["template"]["metadata"]["labels"]["app"] = name
-
-        container_config = app_deployment["spec"]["template"]["spec"]["containers"][0]
-
-        resources, _ = self._resources(app, action="sim")
-        container_config.update(
-            {
-                "name": name,
-                "image": image,
-                "args": [
-                    "dask-worker",
-                    f"{safeowner}-{safetitle}-dask-scheduler:8786",
-                    "--nthreads",
-                    str(resources["limits"]["cpu"]),
-                    "--memory-limit",
-                    str(resources["limits"]["memory"]),
-                    "--no-bokeh",
-                ],
-                "resources": resources,
-            }
-        )
-        container_config["env"].append(
-            {
-                "name": "DASK_SCHEDULER_ADDRESS",
-                "value": f"{safeowner}-{safetitle}-dask-scheduler:8786",
-            }
+        return self._dask_worker_template(
+            app=app,
+            app_deployment=app_deployment,
+            safeowner=safeowner,
+            safetitle=safetitle,
+            name=name,
+            image=image,
         )
 
-        self._set_secrets(app, container_config)
+    def _write_dask_submitter_app(self, app):
+        app_deployment = copy.deepcopy(self.dask_submitter_template)
+        safeowner = clean(app["owner"])
+        safetitle = clean(app["title"])
+        name = f"{safeowner}-{safetitle}-dask-submitter"
+        image = f"{self.cr}/{self.project}/{safeowner}_{safetitle}_tasks:{self.tag}"
+        app = copy.deepcopy(app)
+        app["replicas"] = 1
+        app["resources"] = {
+            "requests": {"cpu": 2, "memory": "2G"},
+            "limits": {"cpu": 2, "memory": "2G"},
+        }
 
-        with open(f"{self.k8s_app_target}/{name}-deployment.yaml", "w") as f:
-            f.write(yaml.dump(app_deployment))
+        return self._dask_worker_template(
+            app=app,
+            app_deployment=app_deployment,
+            safeowner=safeowner,
+            safetitle=safetitle,
+            name=name,
+            image=image,
+        )
 
-        return app_deployment
+    def _write_dask_submitter_service(self, app):
+        app_service = copy.deepcopy(self.dask_submitter_service_template)
+        safeowner = clean(app["owner"])
+        safetitle = clean(app["title"])
+        name = f"{safeowner}-{safetitle}-dask-submitter"
+
+        app_service["metadata"]["name"] = name
+        app_service["metadata"]["labels"]["app"] = name
+        app_service["spec"]["selector"]["app"] = name
+
+        app_service["spec"]["ports"][0]["name"] = name
+
+        with open(f"{self.k8s_app_target}/{name}-service.yaml", "w") as f:
+            f.write(yaml.dump(app_service))
+
+        return app_service
 
     def _write_dask_scheduler_app(self, app):
         app_deployment = copy.deepcopy(self.dask_scheduler_template)
@@ -366,6 +386,48 @@ class Cluster:
         if app.get("secret"):
             for var, val in app["secret"].items():
                 config["env"].append({"name": var.upper(), "value": val})
+
+    def _dask_worker_template(
+        self, app, app_deployment, safeowner, safetitle, name, image
+    ):
+        app_deployment["metadata"]["name"] = name
+        app_deployment["metadata"]["labels"]["app"] = name
+        app_deployment["spec"]["replicas"] = app.get("replicas", 1)
+        app_deployment["spec"]["selector"]["matchLabels"]["app"] = name
+        app_deployment["spec"]["template"]["metadata"]["labels"]["app"] = name
+
+        container_config = app_deployment["spec"]["template"]["spec"]["containers"][0]
+
+        resources, _ = self._resources(app, action="sim")
+        container_config.update(
+            {
+                "name": name,
+                "image": image,
+                "args": [
+                    "dask-worker",
+                    f"{safeowner}-{safetitle}-dask-scheduler:8786",
+                    "--nthreads",
+                    str(resources["limits"]["cpu"]),
+                    "--memory-limit",
+                    str(resources["limits"]["memory"]),
+                    "--no-bokeh",
+                ],
+                "resources": resources,
+            }
+        )
+        container_config["env"].append(
+            {
+                "name": "DASK_SCHEDULER_ADDRESS",
+                "value": f"{safeowner}-{safetitle}-dask-scheduler:8786",
+            }
+        )
+
+        self._set_secrets(app, container_config)
+
+        with open(f"{self.k8s_app_target}/{name}-deployment.yaml", "w") as f:
+            f.write(yaml.dump(app_deployment))
+
+        return app_deployment
 
 
 if __name__ == "__main__":

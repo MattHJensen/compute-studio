@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: # [owner]-[title]-dask-submitter
+  labels:
+    app: # [owner]-[title]-dask-submitter
+    component: submitter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: # [owner]-[title]-dask-submitter
+      component: submitter
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: # [owner]-[title]-submitter
+        component: submitter
+    spec:
+      containers:
+        - name: # [owner]-[tutle]-dask-submitter
+          image: # gcr.io/[project]/[owner]_[title]_tasks:[tag]
+          imagePullPolicy: Always
+          args:
+            - dask-worker
+            -  # [owner]-[title]-dask-scheduler:8786
+            - --nthreads
+            -  2
+            - --memory-limit
+            -  2G
+            - --no-bokeh
+          ports:
+            - containerPort: 8789
+          resources:
+          env:
+            - name: DASK_DISTRIBUTED__DAEMON
+              value: "false"
+            - name: BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: worker-secret
+                  key: BUCKET
+      # affinity:
