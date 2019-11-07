@@ -72,7 +72,7 @@ def done_callback(future, job_id, comp_url, comp_api_token, start_time):
         print("errors", resp.json())
 
 
-def dask_sim(meta_param_dict, adjustment, job_id, comp_url, comp_api_token, timeout):
+def dask_sim(meta_param_dict, adjustment):
     """
     Wraps the functions.run_model function with a dask future and adds a
     callback for pushing the results back to the webapp. The callback is
@@ -84,24 +84,5 @@ def dask_sim(meta_param_dict, adjustment, job_id, comp_url, comp_api_token, time
     we give the run_model task the job_id. This makes it possible for the
     webapp to query the job status.
     """
-    start_time = time.time()
-    partialled_cb = partial(
-        done_callback,
-        job_id=job_id,
-        comp_url=comp_url,
-        comp_api_token=comp_api_token,
-        start_time=start_time,
-    )
-    with worker_client() as c:
-        print("c", c)
-        fut = c.submit(functions.run_model, meta_param_dict, adjustment, key=job_id)
-        fut.add_done_callback(partialled_cb)
-        try:
-            print("waiting on future", fut)
-            _ = fut.result(timeout=timeout)
-        except Exception:
-            # Exceptions are picked up by the callback. We just
-            # log them here.
-            traceback_str = traceback.format_exc()
-            print(f"exception in task with job_id: {job_id}")
-            print(traceback_str)
+    print("submitting inputs", meta_param_dict, adjustment)
+    return functions.run_model(meta_param_dict, adjustment)

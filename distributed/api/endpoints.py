@@ -109,17 +109,20 @@ def dask_endpoint(owner, app_name, action):
     # The url and api token are passed as args insted of env
     # variables so that the wrapper has access to them
     # but the model does not.
-    inputs.update(
-        {
-            "job_id": job_id,
-            "comp_url": os.environ.get("COMP_URL"),
-            "comp_api_token": os.environ.get("COMP_API_TOKEN"),
-            "timeout": get_time_out(owner, app_name),
-        }
+
+    # timeout = get_time_out(owner, app_name)
+
+    callback = functools.partial(
+        done_callback,
+        job_id=job_id,
+        comp_url=os.environ.get("COMP_URL"),
+        comp_api_token=os.environ.get("COMP_API_TOKEN"),
+        start_time=time.time(),
     )
 
     with Client(addr) as c:
-        fut = c.submit(dask_sim, **inputs)
+        fut = c.submit(dask_sim, key=job_id, **inputs)
+        fut.add_done_callback(callback)
         fire_and_forget(fut)
         return {"job_id": job_id, "qlength": 1}
 
