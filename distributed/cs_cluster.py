@@ -313,7 +313,7 @@ class Cluster:
         app_deployment["metadata"]["name"] = name
         app_deployment["spec"]["selector"]["matchLabels"]["app"] = name
         app_deployment["spec"]["template"]["metadata"]["labels"]["app"] = name
-        if "affinity" in app and action == "sim":
+        if "affinity" in app or action == "io":
             affinity_exp = {"key": "size", "operator": "In", "values": affinity_size}
             app_deployment["spec"]["template"]["spec"]["affinity"] = {
                 "nodeAffinity": {
@@ -354,7 +354,7 @@ class Cluster:
                 "requests": {"cpu": 0.7, "memory": "0.25G"},
                 "limits": {"cpu": 1, "memory": "0.7G"},
             }
-            affinity_size = ["small", "medium"]
+            affinity_size = "small"
         else:
             resources = {"requests": {"memory": "1G", "cpu": 1}}
             resources = dict(resources, **copy.deepcopy(app["resources"]))
